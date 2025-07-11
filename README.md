@@ -15,23 +15,6 @@ AI Integration: OpenAI GPT API for personalized learning plans and project recom
 
 
 
-backend/
-├── src/
-│   ├── main/
-│   │   ├── java/com/skillforge/backend/
-│   │   │   ├── SkillforgeBackendApplication.java
-│   │   │   ├── config/             → Spring Security, CORS, JWT configurations
-│   │   │   ├── controller/         → REST controllers (e.g. UserController)
-│   │   │   ├── dto/                → Data Transfer Objects
-│   │   │   ├── exception/          → GlobalExceptionHandler, custom exceptions
-│   │   │   ├── model/              → Entities (User, LearningPath, Task, etc.)
-│   │   │   ├── repository/         → Spring Data JPA repositories
-│   │   │   ├── service/            → Business logic services
-│   │   │   └── util/               → JWTUtils, mappers, helper classes
-│   │   └── resources/
-│   │       ├── application.properties
-│   │       └── static/ (optional)
-│   └── test/java/com/skillforge/backend/  → Unit and integration tests
 
 
 

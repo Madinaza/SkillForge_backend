@@ -14,4 +14,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<User> findByFullnameContainingIgnoreCaseAndRoleContainingIgnoreCase(
             String fullname, String role, Pageable pageable
     );
+    Optional<User> findByResetToken(String resetToken);
 }

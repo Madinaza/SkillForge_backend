@@ -26,9 +26,9 @@ public class UserMapper {
     }
 
     public static void updateEntityFromDTO(UserDTO dto, User user) {
-        user.setFullname(dto.getFullname());
-        user.setEmail(dto.getEmail());
-        user.setCareerGoal(dto.getCareerGoal());
-        user.setLevel(dto.getLevel() != null ? Level.valueOf(dto.getLevel()) : null);
+        if (dto.getFullname() != null) user.setFullname(dto.getFullname());
+        if (dto.getEmail() != null) user.setEmail(dto.getEmail());
+        if (dto.getLevel() != null) user.setLevel(Level.valueOf(dto.getLevel()));
+        if (dto.getCareerGoal() != null) user.setCareerGoal(dto.getCareerGoal());
     }
 }

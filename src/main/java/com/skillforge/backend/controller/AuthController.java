@@ -1,11 +1,10 @@
 package com.skillforge.backend.controller;
 
-import com.skillforge.backend.dto.RegisterRequest;
-import com.skillforge.backend.model.Level;
-import com.skillforge.backend.model.Role;
-import com.skillforge.backend.model.User;
-import com.skillforge.backend.repository.UserRepository;
+import com.skillforge.backend.dto.*;
+import com.skillforge.backend.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -13,24 +12,25 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final UserRepository userRepository;
+    private final AuthService authService;
 
     @PostMapping("/register")
-    public String register(@RequestBody RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            return "Email already exists!";
-        }
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.ok(authService.register(request));
+    }
 
-        User user = User.builder()
-                .fullname(request.getFullname())
-                .email(request.getEmail())
-                .password(request.getPassword()) // Şifreyi encode etmeyi unutma
-                .role(Role.USER)
-                .careerGoal(request.getCareerGoal())
-                .level(Level.valueOf(request.getLevel()))
-                .build();
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
+    }
 
-        userRepository.save(user);
-        return "User registered successfully!";
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestParam String email) {
+        return ResponseEntity.ok(authService.sendResetToken(email));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
+        return ResponseEntity.ok(authService.resetPassword(request));
     }
 }

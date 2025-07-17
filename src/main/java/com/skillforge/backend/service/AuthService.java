@@ -6,5 +6,8 @@ public interface AuthService {
     AuthResponse register(RegisterRequest request);
     AuthResponse login(LoginRequest request);
     String sendResetToken(String email);
-    String resetPassword(ResetPasswordRequest request);
+    String resetPasswordDirect(ResetPasswordRequest request);
+
+    String resetPasswordWithToken(TokenResetPasswordRequest request);
+
 }

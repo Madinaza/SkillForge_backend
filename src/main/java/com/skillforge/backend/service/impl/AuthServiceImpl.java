@@ -7,6 +7,7 @@ import com.skillforge.backend.model.User;
 import com.skillforge.backend.repository.UserRepository;
 import com.skillforge.backend.security.JwtService;
 import com.skillforge.backend.service.AuthService;
+import com.skillforge.backend.service.EmailService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -25,6 +26,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final EmailService emailService;
 
     @Override
     public AuthResponse register(RegisterRequest request) {
@@ -58,6 +60,20 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResponse(jwt);
     }
 
+
+
+    @Override
+    public String resetPasswordDirect(ResetPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setResetToken(null); // optional cleanup
+        userRepository.save(user);
+
+        return "Password reset successfully";
+    }
+
     @Override
     public String sendResetToken(String email) {
         User user = userRepository.findByEmail(email)
@@ -67,18 +83,26 @@ public class AuthServiceImpl implements AuthService {
         user.setResetToken(token);
         userRepository.save(user);
 
-        // TODO: Email service entegrasyonu ile kullanıcıya token gönder
-        return "Reset token: " + token;
+        String resetUrl = "https://your-frontend-url/reset-password?token=" + token;
+
+        String subject = "SkillForge Password Reset";
+        String message = "Click the link below to reset your password:\n\n" + resetUrl;
+
+        emailService.sendEmail(user.getEmail(), subject, message);
+
+        return "Password reset link has been sent to your email.";
     }
 
     @Override
-    @Transactional
-    public String resetPassword(ResetPasswordRequest request) {
+    public String resetPasswordWithToken(TokenResetPasswordRequest request) {
         User user = userRepository.findByResetToken(request.getToken())
                 .orElseThrow(() -> new UserNotFoundException("Invalid or expired token"));
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        user.setResetToken(null);
+        user.setResetToken(null); // clear token
+        userRepository.save(user);
+
         return "Password successfully reset";
     }
+
 }

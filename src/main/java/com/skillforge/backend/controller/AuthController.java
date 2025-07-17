@@ -15,9 +15,14 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.ok(authService.register(request));
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+        try {
+            return ResponseEntity.ok(authService.register(request));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage()); // 400 with readable message
+        }
     }
+
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -29,8 +34,16 @@ public class AuthController {
         return ResponseEntity.ok(authService.sendResetToken(email));
     }
 
-    @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
-        return ResponseEntity.ok(authService.resetPassword(request));
+
+    @PostMapping("/reset-password-direct")
+    public ResponseEntity<String> resetPasswordDirect(@RequestBody ResetPasswordRequest request) {
+        return ResponseEntity.ok(authService.resetPasswordDirect(request));
     }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody TokenResetPasswordRequest request) {
+        return ResponseEntity.ok(authService.resetPasswordWithToken(request));
+    }
+
+
 }

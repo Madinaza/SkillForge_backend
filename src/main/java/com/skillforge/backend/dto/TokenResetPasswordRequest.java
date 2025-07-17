@@ -3,8 +3,7 @@ package com.skillforge.backend.dto;
 import lombok.Data;
 
 @Data
-public class ResetPasswordRequest {
-    private String email;
+public class TokenResetPasswordRequest {
+    private String token;
     private String newPassword;
 }
-

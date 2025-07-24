@@ -19,21 +19,26 @@ public class AuthController {
         try {
             return ResponseEntity.ok(authService.register(request));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage()); // 400 with readable message
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+        try {
+            return ResponseEntity.ok(authService.login(request));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
+
 
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@RequestParam String email) {
         return ResponseEntity.ok(authService.sendResetToken(email));
     }
-
 
     @PostMapping("/reset-password-direct")
     public ResponseEntity<String> resetPasswordDirect(@RequestBody ResetPasswordRequest request) {
@@ -45,5 +50,13 @@ public class AuthController {
         return ResponseEntity.ok(authService.resetPasswordWithToken(request));
     }
 
+    @GetMapping("/verify-email")
+    public ResponseEntity<String> verifyEmail(@RequestParam String token) {
+        return ResponseEntity.ok(authService.verifyEmail(token));
+    }
 
+    @PostMapping("/resend-verification")
+    public ResponseEntity<String> resendVerification(@RequestBody ResendVerificationRequest request) {
+        return ResponseEntity.ok(authService.resendVerificationEmail(request.getEmail()));
+    }
 }

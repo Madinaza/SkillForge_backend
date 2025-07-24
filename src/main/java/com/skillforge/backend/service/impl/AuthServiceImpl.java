@@ -34,17 +34,27 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Email already in use");
         }
 
+        String verificationToken = UUID.randomUUID().toString();
+
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .fullname(request.getFullname())
                 .role(Role.USER)
+                .verificationToken(verificationToken)
+                .enabled(false)
                 .build();
 
         userRepository.save(user);
 
-        String jwt = jwtService.generateToken(user);
-        return new AuthResponse(jwt);
+        String verificationUrl = "https://your-frontend-url/verify-email?token=" + verificationToken;
+
+        String subject = "SkillForge Email Verification";
+        String message = "Click the link below to verify your email:\n\n" + verificationUrl;
+
+        emailService.sendEmail(user.getEmail(), subject, message);
+
+        return new AuthResponse("Registration successful. Please check your email to verify your account.");
     }
 
     @Override
@@ -56,11 +66,13 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("Invalid credentials"));
 
+        if (!user.isEnabled()) {
+            throw new IllegalStateException("Email not verified");
+        }
+
         String jwt = jwtService.generateToken(user);
         return new AuthResponse(jwt);
     }
-
-
 
     @Override
     public String resetPasswordDirect(ResetPasswordRequest request) {
@@ -104,5 +116,39 @@ public class AuthServiceImpl implements AuthService {
 
         return "Password successfully reset";
     }
+    @Override
+    public String verifyEmail(String token) {
+        User user = userRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new UserNotFoundException("Invalid or expired verification token"));
+
+        user.setVerificationToken(null);
+        user.setEnabled(true); // ✅ Mail doğrulandı
+        userRepository.save(user);
+
+        return "Email verified successfully. You can now log in.";
+    }
+    @Override
+    public String resendVerificationEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (user.isEnabled()) {
+            return "Email is already verified.";
+        }
+
+        String newToken = UUID.randomUUID().toString();
+        user.setVerificationToken(newToken);
+        userRepository.save(user);
+
+        String verificationUrl = "https://your-frontend-url/verify-email?token=" + newToken;
+
+        String subject = "SkillForge Email Verification - Resend";
+        String message = "Click the link below to verify your email:\n\n" + verificationUrl;
+
+        emailService.sendEmail(user.getEmail(), subject, message);
+
+        return "Verification email resent successfully.";
+    }
+
 
 }

@@ -18,6 +18,7 @@ public class EmailService {
         mailMessage.setText(message);
         mailMessage.setFrom("aghazadahmadina@gmail.com");
         mailSender.send(mailMessage);
+
     }
 }
 

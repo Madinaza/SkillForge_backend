@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Collections;
 
+
 @Entity
 @Getter
 @Setter
@@ -34,14 +35,18 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Role role;
 
+
     private String resetToken;
+    private String verificationToken;
+
+    @Column(nullable = false)
+    private boolean enabled = false; // ✅ yeni eklendi
 
     private String careerGoal;
 
     @Enumerated(EnumType.STRING)
     private Level level;
 
-    // Spring Security UserDetails methods
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.singleton(role);
@@ -55,5 +60,9 @@ public class User implements UserDetails {
     @Override public boolean isAccountNonExpired() { return true; }
     @Override public boolean isAccountNonLocked() { return true; }
     @Override public boolean isCredentialsNonExpired() { return true; }
-    @Override public boolean isEnabled() { return true; }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
 }

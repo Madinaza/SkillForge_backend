@@ -15,4 +15,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
             String fullname, String role, Pageable pageable
     );
     Optional<User> findByResetToken(String resetToken);
+
+    Optional<User> findByVerificationToken(String verificationToken);
+
 }
+

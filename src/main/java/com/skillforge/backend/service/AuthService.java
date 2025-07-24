@@ -9,5 +9,7 @@ public interface AuthService {
     String resetPasswordDirect(ResetPasswordRequest request);
 
     String resetPasswordWithToken(TokenResetPasswordRequest request);
+    String verifyEmail(String token);
+    String resendVerificationEmail(String email);
 
 }

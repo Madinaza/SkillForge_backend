@@ -1,7 +1,9 @@
 package com.skillforge.backend.service;
 
 import com.skillforge.backend.dto.PasswordUpdateDTO;
+import com.skillforge.backend.dto.UpdateProfileRequest;
 import com.skillforge.backend.dto.UserDTO;
+import com.skillforge.backend.model.Role;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -17,4 +19,8 @@ public interface UserService {
     void deleteUser(Long id);
     UserDTO updatePassword(Long id, PasswordUpdateDTO passwordUpdateDTO);
     Page<UserDTO> getUsersByFilter(String name, String role, Pageable pageable);
+    void changeUserRole(Long userId, Role newRole);
+    void updateUserProfile(String email, UpdateProfileRequest request);
+
+
 }

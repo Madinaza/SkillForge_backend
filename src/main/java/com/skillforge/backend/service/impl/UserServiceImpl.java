@@ -1,8 +1,10 @@
 package com.skillforge.backend.service.impl;
 
 import com.skillforge.backend.dto.PasswordUpdateDTO;
+import com.skillforge.backend.dto.UpdateProfileRequest;
 import com.skillforge.backend.dto.UserDTO;
 import com.skillforge.backend.exception.UserNotFoundException;
+import com.skillforge.backend.model.Role;
 import com.skillforge.backend.model.User;
 import com.skillforge.backend.repository.UserRepository;
 import com.skillforge.backend.service.UserService;
@@ -89,5 +91,24 @@ public class UserServiceImpl implements UserService {
                 .findByFullnameContainingIgnoreCaseAndRoleContainingIgnoreCase(filteredName, filteredRole, pageable);
 
         return usersPage.map(UserMapper::toDto);
+    }
+    @Override
+    public void changeUserRole(Long userId, Role newRole) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        user.setRole(newRole);
+        userRepository.save(user);
+    }
+    @Override
+    public void updateUserProfile(String email, UpdateProfileRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (request.getFullname() != null) user.setFullname(request.getFullname());
+        if (request.getCareerGoal() != null) user.setCareerGoal(request.getCareerGoal());
+        if (request.getLevel() != null) user.setLevel(request.getLevel());
+
+        userRepository.save(user);
     }
 }

@@ -1,3 +1,4 @@
+// src/main/java/com/skillforge/backend/service/impl/UserServiceImpl.java
 package com.skillforge.backend.service.impl;
 
 import com.skillforge.backend.dto.PasswordUpdateDTO;
@@ -14,101 +15,106 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
 
-    private final UserRepository userRepository;
+    private final UserRepository repo;
     private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
+    public UserServiceImpl(UserRepository repo, PasswordEncoder passwordEncoder) {
+        this.repo = repo;
         this.passwordEncoder = passwordEncoder;
     }
 
+    // PROFILE
+    @Override
+    public UserDTO getUserByEmail(String email) {
+        return repo.findByEmail(email)
+                .map(UserMapper::toDto)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + email));
+    }
+
+    @Override
+    public void updateUserProfile(String email, UpdateProfileRequest req) {
+        User user = repo.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + email));
+        UserMapper.updateFromRequest(user, req);
+        user.setProfileUpdatedAt(LocalDateTime.now());
+        repo.save(user);
+    }
+
+    // CRUD
     @Override
     public List<UserDTO> getAllUsers() {
-        return userRepository.findAll()
+        return repo.findAll()
                 .stream()
                 .map(UserMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Optional<UserDTO> getUserById(Long id) {
-        return userRepository.findById(id)
-                .map(UserMapper::toDto);
+    public java.util.Optional<UserDTO> getUserById(Long id) {
+        return repo.findById(id).map(UserMapper::toDto);
     }
 
     @Override
-    public UserDTO createUser(UserDTO userDTO) {
-        User user = UserMapper.toEntity(userDTO);
+    public UserDTO createUser(UserDTO dto) {
+        User user = UserMapper.toEntity(dto);
         user.setPassword(passwordEncoder.encode("defaultPassword123"));
-        User savedUser = userRepository.save(user);
-        return UserMapper.toDto(savedUser);
+        User saved = repo.save(user);
+        return UserMapper.toDto(saved);
     }
 
     @Override
-    public UserDTO updateUser(Long id, UserDTO userDTO) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
-        UserMapper.updateEntityFromDTO(userDTO, user);
-        User updatedUser = userRepository.save(user);
-        return UserMapper.toDto(updatedUser);
+    public UserDTO updateUser(Long id, UserDTO dto) {
+        User user = repo.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + id));
+        UserMapper.updateEntityFromDTO(dto, user);
+        User updated = repo.save(user);
+        return UserMapper.toDto(updated);
     }
 
     @Override
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new UserNotFoundException("User not found with id: " + id);
+        if (!repo.existsById(id)) {
+            throw new UserNotFoundException("User not found: " + id);
         }
-        userRepository.deleteById(id);
+        repo.deleteById(id);
     }
 
+    // PASSWORD
     @Override
-    public UserDTO updatePassword(Long id, PasswordUpdateDTO passwordUpdateDTO) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
-
-        if (!passwordEncoder.matches(passwordUpdateDTO.getOldPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Old password is incorrect");
+    public UserDTO updatePassword(Long id, PasswordUpdateDTO dto) {
+        User user = repo.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + id));
+        if (!passwordEncoder.matches(dto.getOldPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Old password incorrect");
         }
-
-        user.setPassword(passwordEncoder.encode(passwordUpdateDTO.getNewPassword()));
-        User updatedUser = userRepository.save(user);
-        return UserMapper.toDto(updatedUser);
+        user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        User updated = repo.save(user);
+        return UserMapper.toDto(updated);
     }
 
-    @Override
-    public Page<UserDTO> getUsersByFilter(String name, String role, Pageable pageable) {
-        String filteredName = (name == null) ? "" : name;
-        String filteredRole = (role == null) ? "" : role;
-
-        Page<User> usersPage = userRepository
-                .findByFullnameContainingIgnoreCaseAndRoleContainingIgnoreCase(filteredName, filteredRole, pageable);
-
-        return usersPage.map(UserMapper::toDto);
-    }
+    // ROLE
     @Override
     public void changeUserRole(Long userId, Role newRole) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-
+        User user = repo.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
         user.setRole(newRole);
-        userRepository.save(user);
+        repo.save(user);
     }
+
+    // SEARCH & PAGINATION
     @Override
-    public void updateUserProfile(String email, UpdateProfileRequest request) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-
-        if (request.getFullname() != null) user.setFullname(request.getFullname());
-        if (request.getCareerGoal() != null) user.setCareerGoal(request.getCareerGoal());
-        if (request.getLevel() != null) user.setLevel(request.getLevel());
-
-        userRepository.save(user);
+    public Page<UserDTO> getUsersByFilter(String name, String role, Pageable pageable) {
+        String nm = (name == null) ? "" : name;
+        String rl = (role == null) ? "" : role;
+        return repo
+                .findByFullnameContainingIgnoreCaseAndRoleContainingIgnoreCase(nm, rl, pageable)
+                .map(UserMapper::toDto);
     }
 }

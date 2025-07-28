@@ -1,3 +1,4 @@
+// src/main/java/com/skillforge/backend/service/UserService.java
 package com.skillforge.backend.service;
 
 import com.skillforge.backend.dto.PasswordUpdateDTO;
@@ -11,16 +12,21 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserService {
+    // For profile
+    UserDTO getUserByEmail(String email);
+    void updateUserProfile(String email, UpdateProfileRequest request);
 
+    // Standard CRUD
     List<UserDTO> getAllUsers();
     Optional<UserDTO> getUserById(Long id);
     UserDTO createUser(UserDTO userDTO);
     UserDTO updateUser(Long id, UserDTO userDTO);
     void deleteUser(Long id);
-    UserDTO updatePassword(Long id, PasswordUpdateDTO passwordUpdateDTO);
-    Page<UserDTO> getUsersByFilter(String name, String role, Pageable pageable);
+
+    // Password & roles
+    UserDTO updatePassword(Long id, PasswordUpdateDTO dto);
     void changeUserRole(Long userId, Role newRole);
-    void updateUserProfile(String email, UpdateProfileRequest request);
 
-
+    // Filtering & pagination
+    Page<UserDTO> getUsersByFilter(String name, String role, Pageable pageable);
 }

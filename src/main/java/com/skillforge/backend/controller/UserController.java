@@ -3,9 +3,10 @@ package com.skillforge.backend.controller;
 import com.skillforge.backend.dto.PasswordUpdateDTO;
 import com.skillforge.backend.dto.UpdateProfileRequest;
 import com.skillforge.backend.dto.UserDTO;
-import com.skillforge.backend.exception.UserNotFoundException;
+import com.skillforge.backend.model.Role;
 import com.skillforge.backend.service.UserService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -19,72 +20,94 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
+@RequiredArgsConstructor
 public class UserController {
 
-    private final UserService userService;
+    private final UserService svc;
 
-    // Constructor Injection
-    public UserController(UserService userService) {
-        this.userService = userService;
+    // 1) GET current user's profile
+    @GetMapping("/profile")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<UserDTO> getMyProfile(@AuthenticationPrincipal UserDetails me) {
+        UserDTO dto = svc.getUserByEmail(me.getUsername());
+        return ResponseEntity.ok(dto);
     }
 
-    // Tüm kullanıcıları getir
-    @GetMapping
-    public ResponseEntity<List<UserDTO>> getAllUsers() {
-        List<UserDTO> users = userService.getAllUsers();
-        return ResponseEntity.ok(users);
-    }
-
-    // ID ile kullanıcı getir
-    @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> getUserById(@PathVariable Long id) {
-        UserDTO userDTO = userService.getUserById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
-        return ResponseEntity.ok(userDTO);
-    }
-
-    // Yeni kullanıcı oluştur
-    @PostMapping
-    public ResponseEntity<UserDTO> createUser(@Valid @RequestBody UserDTO userDTO) {
-        UserDTO createdUser = userService.createUser(userDTO);
-        return ResponseEntity.ok(createdUser);
-    }
-
-    // Var olan kullanıcıyı güncelle
-    @PutMapping("/{id}")
-    public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @Valid @RequestBody UserDTO userDTO) {
-        UserDTO updatedUser = userService.updateUser(id, userDTO);
-        return ResponseEntity.ok(updatedUser);
-    }
-
-    // Şifre güncelle
-    @PutMapping("/{id}/password")
-    public ResponseEntity<Void> updatePassword(@PathVariable Long id, @Valid @RequestBody PasswordUpdateDTO passwordUpdateDTO) {
-        userService.updatePassword(id, passwordUpdateDTO);
+    // 2) UPDATE current user's profile
+    @PutMapping("/profile")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<Void> updateMyProfile(
+            @Valid @RequestBody UpdateProfileRequest req,
+            @AuthenticationPrincipal UserDetails me) {
+        svc.updateUserProfile(me.getUsername(), req);
         return ResponseEntity.noContent().build();
     }
 
-    // Kullanıcı sil
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id);
-        return ResponseEntity.noContent().build();
-    }
+    // 3) SEARCH & PAGINATION
     @GetMapping("/search")
     public ResponseEntity<Page<UserDTO>> searchUsers(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String role,
-            @PageableDefault(size = 10, sort = "name") Pageable pageable) {
-
-        Page<UserDTO> users = userService.getUsersByFilter(name, role, pageable);
-        return ResponseEntity.ok(users);
+            @PageableDefault(size = 10) Pageable pageable) {
+        Page<UserDTO> page = svc.getUsersByFilter(name, role, pageable);
+        return ResponseEntity.ok(page);
     }
 
-    @PutMapping("/profile")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<String> updateProfile(@RequestBody UpdateProfileRequest request,
-                                                @AuthenticationPrincipal UserDetails userDetails) {
-        userService.updateUserProfile(userDetails.getUsername(), request);
-        return ResponseEntity.ok("Profile updated successfully");
+    // 4) LIST ALL USERS
+    @GetMapping
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
+        List<UserDTO> list = svc.getAllUsers();
+        return ResponseEntity.ok(list);
+    }
+
+    // 5) GET USER BY ID
+    @GetMapping("/{id}")
+    public ResponseEntity<UserDTO> getUserById(@PathVariable Long id) {
+        return svc.getUserById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // 6) CREATE USER
+    @PostMapping
+    public ResponseEntity<UserDTO> createUser(@Valid @RequestBody UserDTO dto) {
+        UserDTO created = svc.createUser(dto);
+        return ResponseEntity.ok(created);
+    }
+
+    // 7) UPDATE USER
+    @PutMapping("/{id}")
+    public ResponseEntity<UserDTO> updateUser(
+            @PathVariable Long id,
+            @Valid @RequestBody UserDTO dto) {
+        UserDTO updated = svc.updateUser(id, dto);
+        return ResponseEntity.ok(updated);
+    }
+
+    // 8) CHANGE PASSWORD
+    @PutMapping("/{id}/password")
+    public ResponseEntity<Void> changePassword(
+            @PathVariable Long id,
+            @Valid @RequestBody PasswordUpdateDTO dto) {
+        svc.updatePassword(id, dto);
+        return ResponseEntity.noContent().build();
+    }
+
+    // 9) CHANGE ROLE (ADMIN only) — now correctly binds Role enum
+    //    Example: PUT /api/users/123/role/ADMIN
+    @PutMapping("/{id}/role/{newRole}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> changeUserRole(
+            @PathVariable Long id,
+            @PathVariable Role newRole) {
+        svc.changeUserRole(id, newRole);
+        return ResponseEntity.noContent().build();
+    }
+
+    // 10) DELETE USER
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        svc.deleteUser(id);
+        return ResponseEntity.noContent().build();
     }
 }

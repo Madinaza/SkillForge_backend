@@ -10,6 +10,9 @@ public class UserDTO {
     private Long id;
     private String fullname;
     private String email;
-    private String level; // string olarak çünkü enum name() ile geliyor
+    private String level;
     private String careerGoal;
+    private String avatarUrl;
+    private String bio;
+    private int profileCompletion;
 }

@@ -1,7 +1,6 @@
 package com.skillforge.backend.config;
 
 import com.skillforge.backend.security.JwtAuthenticationFilter;
-import com.skillforge.backend.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,14 +36,28 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // disable CSRF in a stateless API
                 .csrf(csrf -> csrf.disable())
+                // no HTTP session; JWT only
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // authorization rules
                 .authorizeHttpRequests(auth -> auth
+                        // public auth endpoints
                         .requestMatchers("/api/auth/**").permitAll()
+                        // swagger / OpenAPI endpoints
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**"
+                        ).permitAll()
+                        // admin‑only endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // instructor or admin
                         .requestMatchers("/api/instructor/**").hasAnyRole("INSTRUCTOR","ADMIN")
+                        // everything else requires a valid JWT
                         .anyRequest().authenticated()
                 )
+                // add our JWT filter before the built‑in UsernamePasswordAuthenticationFilter
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

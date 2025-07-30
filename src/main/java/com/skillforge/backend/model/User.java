@@ -6,9 +6,11 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.*;
 
+/**
+ * Persisted user account.  Implements Spring Security’s UserDetails.
+ */
 @Entity
 @Table(name = "users")
 @Getter
@@ -17,8 +19,8 @@ import java.util.Collections;
 @AllArgsConstructor
 @Builder
 public class User implements UserDetails {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
@@ -38,6 +40,7 @@ public class User implements UserDetails {
     private String verificationToken;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean enabled = false;
 
     private String careerGoal;
@@ -51,90 +54,95 @@ public class User implements UserDetails {
     private String bio;
 
     private LocalDateTime lastLogin;
+
     private LocalDateTime profileUpdatedAt;
 
-    // 2FA fields
+    // ————————————————————————————————————————————
+    // Two‑Factor Authentication fields
+    // ————————————————————————————————————————————
     @Column(nullable = false)
+    @Builder.Default
     private boolean twoFaEnabled = false;
 
     private String twoFaSecret;
 
-    /*-----------------------------------
-     * Convenience methods
-     *-----------------------------------*/
+    // ————————————————————————————————————————————
+    // “Completed topics” collection for AI recommendations
+    // ————————————————————————————————————————————
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name        = "user_completed_topics",
+            joinColumns = @JoinColumn(name = "user_id")
+    )
+    @Column(name = "topic", nullable = false)
+    @Builder.Default
+    private List<String> completedTopics = new ArrayList<>();
 
-    /** Mark a fresh login timestamp */
-    public void recordLogin() {
-        this.lastLogin = LocalDateTime.now();
-    }
 
-    /** Update profile fields and record time */
-    public void updateProfile(String fullname,
-                              String careerGoal,
-                              Level level,
-                              String avatarUrl,
-                              String bio) {
-        if (fullname != null)    this.fullname    = fullname;
-        if (careerGoal != null)  this.careerGoal  = careerGoal;
-        if (level != null)       this.level       = level;
-        if (avatarUrl != null)   this.avatarUrl   = avatarUrl;
-        if (bio != null)         this.bio         = bio;
-        this.profileUpdatedAt = LocalDateTime.now();
-    }
-
-    /** Enable two‑factor auth with the given Base32 secret */
-    public void enableTwoFa(String secret) {
-        this.twoFaSecret  = secret;
-        this.twoFaEnabled = true;
-    }
-
-    /** Disable two‑factor auth */
-    public void disableTwoFa() {
-        this.twoFaSecret  = null;
-        this.twoFaEnabled = false;
-    }
-
-    /** Set new reset token (e.g. for password resets) */
-    public void setResetToken(String token) {
-        this.resetToken = token;
-    }
-
-    /** Set new email verification token */
-    public void setVerificationToken(String token) {
-        this.verificationToken = token;
-    }
-
-    /** Grant ROLE_xxx authority based on the enum */
+    // ————————————————————————————————————————————
+    // UserDetails implementation
+    // ————————————————————————————————————————————
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.singleton(role);
     }
 
-    @Override
-    public String getUsername() {
-        return email;
+    @Override public String getUsername()                 { return email; }
+    @Override public boolean isAccountNonExpired()        { return true;  }
+    @Override public boolean isAccountNonLocked()         { return true;  }
+    @Override public boolean isCredentialsNonExpired()    { return true;  }
+    @Override public boolean isEnabled()                  { return enabled; }
+
+    // ————————————————————————————————————————————
+    // Convenience methods
+    // ————————————————————————————————————————————
+
+    /** Mark this user as “just logged in” */
+    public void recordLogin() {
+        this.lastLogin = LocalDateTime.now();
     }
 
-    // Spring Security boolean flags
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
+    /**
+     * Update mutable profile fields in one shot
+     * and record the update timestamp.
+     */
+    public void updateProfile(String fullname,
+                              String careerGoal,
+                              Level level,
+                              String avatarUrl,
+                              String bio) {
+        if (fullname   != null) this.fullname    = fullname;
+        if (careerGoal != null) this.careerGoal  = careerGoal;
+        if (level      != null) this.level       = level;
+        if (avatarUrl  != null) this.avatarUrl   = avatarUrl;
+        if (bio        != null) this.bio         = bio;
+        this.profileUpdatedAt = LocalDateTime.now();
     }
 
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
+    /** Enable 2FA by setting secret and flipping the flag on */
+    public void enableTwoFa(String secret) {
+        this.twoFaSecret  = secret;
+        this.twoFaEnabled = true;
     }
 
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
+    /** Disable 2FA altogether */
+    public void disableTwoFa() {
+        this.twoFaSecret  = null;
+        this.twoFaEnabled = false;
     }
 
-    /** Controls whether user can authenticate */
-    @Override
-    public boolean isEnabled() {
-        return enabled;
+    /** Set or clear the password‑reset token */
+    public void setResetToken(String token) {
+        this.resetToken = token;
+    }
+
+    /** Set or clear the email‑verification token */
+    public void setVerificationToken(String token) {
+        this.verificationToken = token;
+    }
+
+    /** Accessor for AI service: topics this user has completed */
+    public List<String> getCompletedTopics() {
+        return Collections.unmodifiableList(completedTopics);
     }
 }

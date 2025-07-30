@@ -25,6 +25,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository repo;
     private final PasswordEncoder passwordEncoder;
 
+
     public UserServiceImpl(UserRepository repo, PasswordEncoder passwordEncoder) {
         this.repo = repo;
         this.passwordEncoder = passwordEncoder;
@@ -55,6 +56,14 @@ public class UserServiceImpl implements UserService {
                 .map(UserMapper::toDto)
                 .collect(Collectors.toList());
     }
+
+
+    @Override
+    public User getByEmail(String email) {
+        return repo.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("No user with email “" + email + "”"));
+    }
+
 
     @Override
     public java.util.Optional<UserDTO> getUserById(Long id) {

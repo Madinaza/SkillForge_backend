@@ -5,6 +5,7 @@ import com.skillforge.backend.dto.PasswordUpdateDTO;
 import com.skillforge.backend.dto.UpdateProfileRequest;
 import com.skillforge.backend.dto.UserDTO;
 import com.skillforge.backend.model.Role;
+import com.skillforge.backend.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -26,6 +27,8 @@ public interface UserService {
     // Password & roles
     UserDTO updatePassword(Long id, PasswordUpdateDTO dto);
     void changeUserRole(Long userId, Role newRole);
+
+    User getByEmail(String email);
 
     // Filtering & pagination
     Page<UserDTO> getUsersByFilter(String name, String role, Pageable pageable);
